@@ -47,6 +47,10 @@ An example Go test file has been provided in [main_test.go]().
 You can run the test suite with:
 
 ```bash
+
+bazel build //hack/bin:kube-apiserver
+bazel build //hack/bin:etcd
+
 $ TEST_ZONE_NAME=example.com go test .
 ```
 
