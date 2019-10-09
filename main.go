@@ -127,15 +127,14 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 
 	entry := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
 
-	recordsTxt, err := c.findTxtRecords(provider, *zone, entry)
+	recordsTxt, err := c.findTxtRecords(provider, *zone, entry, ch.Key)
 	if err != nil {
 		return err
 	}
-	for _, r := range recordsTxt {
-		if *r.Data == ch.Key {
-			// the record is already set to the desired value
-			return nil
-		}
+
+	if len(recordsTxt) > 0 {
+		// the record is already set to the desired value
+		return nil
 	}
 
 	if len(recordsTxt) >= 1 {
@@ -179,7 +178,7 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 	}
 
 	entry := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
-	records, err := c.findTxtRecords(provider, *zone, entry)
+	records, err := c.findTxtRecords(provider, *zone, entry, ch.Key)
 	if err != nil {
 		return err
 	}
@@ -251,7 +250,7 @@ func (c *softlayerDNSProviderSolver) getHostedZone(session *session.Session, dom
 	return zones[0].Id, nil
 }
 
-func (c *softlayerDNSProviderSolver) findTxtRecords(session *session.Session, zone int, entry string) ([]datatypes.Dns_Domain_ResourceRecord, error) {
+func (c *softlayerDNSProviderSolver) findTxtRecords(session *session.Session, zone int, entry, key string) ([]datatypes.Dns_Domain_ResourceRecord, error) {
 	txtType := "txt"
 	// Look for existing records.
 	svc := services.GetDnsDomainService(session)
@@ -268,7 +267,7 @@ func (c *softlayerDNSProviderSolver) findTxtRecords(session *session.Session, zo
 
 	found := []datatypes.Dns_Domain_ResourceRecord{}
 	for _, r := range recs {
-		if *r.Type == txtType && *r.Host == entry {
+		if *r.Type == txtType && *r.Host == entry && *r.Data == key {
 			found = append(found, r)
 		}
 	}
