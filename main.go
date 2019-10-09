@@ -18,6 +18,8 @@ import (
 	"github.com/softlayer/softlayer-go/filter"
 	"github.com/softlayer/softlayer-go/services"
 	"github.com/softlayer/softlayer-go/session"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -27,7 +29,7 @@ func main() {
 		panic("GROUP_NAME must be specified")
 	}
 
-	// This will register our custom DNS provider with the webhook serving
+	// This will register our softlayer DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
 	// You can register multiple DNS provider implementations with a single
 	// webhook, where the Name() method will be used to disambiguate between
@@ -37,22 +39,15 @@ func main() {
 	)
 }
 
-// customDNSProviderSolver implements the provider-specific logic needed to
+// softlayerDNSProviderSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
 // To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
 // interface.
 type softlayerDNSProviderSolver struct {
-	// If a Kubernetes 'clientset' is needed, you must:
-	// 1. uncomment the additional `client` field in this structure below
-	// 2. uncomment the "k8s.io/client-go/kubernetes" import at the top of the file
-	// 3. uncomment the relevant code in the Initialize method below
-	// 4. ensure your webhook's service account has the required RBAC role
-	//    assigned to it for interacting with the Kubernetes APIs you need.
-	client  *kubernetes.Clientset
-	session *session.Session
+	client *kubernetes.Clientset
 }
 
-// customDNSProviderConfig is a structure that is used to decode into when
+// softlayerDNSProviderConfig is a structure that is used to decode into when
 // solving a DNS01 challenge.
 // This information is provided by cert-manager, and may be a reference to
 // additional configuration that's needed to solve the challenge for this
@@ -72,7 +67,7 @@ type softlayerDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	//Email           string `json:"email"`
+	Username        string                          `json:"username"`
 	APIKeySecretRef certmanagerv1.SecretKeySelector `json:"apiKeySecretRef"`
 }
 
@@ -86,8 +81,20 @@ func (c *softlayerDNSProviderSolver) Name() string {
 	return "softlayer-solver"
 }
 
-func (c *softlayerDNSProviderSolver) SetSession(client *session.Session) {
-	c.session = client
+func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, namespace string) (*session.Session, error) {
+	sec, err := c.client.CoreV1().Secrets(namespace).Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
+	if !ok {
+		return nil, fmt.Errorf("Key %q not found in secret \"%s/%s\"", cfg.APIKeySecretRef.Key, cfg.APIKeySecretRef.LocalObjectReference.Name, namespace)
+	}
+
+	apiKey := string(secBytes)
+
+	return session.New(cfg.Username, apiKey), nil
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -96,26 +103,23 @@ func (c *softlayerDNSProviderSolver) SetSession(client *session.Session) {
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("=========DEBUG===========")
-	fmt.Println("=========Present===========")
-	fmt.Println("=========DEBUG===========")
-	fmt.Printf("%s:%s", ch.ResolvedZone, ch.ResolvedFQDN)
-
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	provider, err := c.provider(&cfg, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
 
-	zone, err := c.getHostedZone(ch.ResolvedZone)
+	zone, err := c.getHostedZone(provider, ch.ResolvedZone)
 	if err != nil {
 		return err
 	}
 
 	// Look for existing records.
-	svc := services.GetDnsDomainService(c.session)
+	svc := services.GetDnsDomainService(provider)
 	records, err := svc.Id(*zone).GetResourceRecords()
 	if len(records) == 0 || err != nil {
 		return err
@@ -123,7 +127,7 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 
 	entry := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
 
-	recordsTxt, err := c.findTxtRecords(*zone, entry)
+	recordsTxt, err := c.findTxtRecords(provider, *zone, entry)
 	if err != nil {
 		return err
 	}
@@ -135,7 +139,7 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 	}
 
 	if len(recordsTxt) >= 1 {
-		svcRecord := services.GetDnsDomainResourceRecordService(c.session)
+		svcRecord := services.GetDnsDomainResourceRecordService(provider)
 		del, err := svcRecord.DeleteObjects(recordsTxt)
 		if del == false || err != nil {
 			return err
@@ -159,20 +163,28 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
 
-	zone, err := c.getHostedZone(ch.ResolvedZone)
+	provider, err := c.provider(&cfg, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
+
+	zone, err := c.getHostedZone(provider, ch.ResolvedZone)
 	if err != nil {
 		return err
 	}
 
 	entry := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
-	records, err := c.findTxtRecords(*zone, entry)
+	records, err := c.findTxtRecords(provider, *zone, entry)
 	if err != nil {
 		return err
 	}
 
-	svc := services.GetDnsDomainResourceRecordService(c.session)
+	svc := services.GetDnsDomainResourceRecordService(provider)
 	del, err := svc.DeleteObjects(records)
 	if del == false || err != nil {
 		return err
@@ -190,21 +202,12 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
-	///// YOUR CUSTOM DNS PROVIDER
-
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
 	}
 
 	c.client = cl
-
-	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
-	//c.session = session.New(username, apikey)
-	if c.session == nil {
-		c.session = session.New("asd", "asd")
-	}
 	return nil
 }
 
@@ -224,8 +227,8 @@ func loadConfig(cfgJSON *extapi.JSON) (softlayerDNSProviderConfig, error) {
 }
 
 // getHostedZone returns the managed-zone
-func (c *softlayerDNSProviderSolver) getHostedZone(domain string) (*int, error) {
-	svc := services.GetAccountService(c.session)
+func (c *softlayerDNSProviderSolver) getHostedZone(session *session.Session, domain string) (*int, error) {
+	svc := services.GetAccountService(session)
 
 	filters := filter.New(
 		filter.Path("domains.name").Eq(strings.TrimSuffix(domain, ".")),
@@ -248,10 +251,10 @@ func (c *softlayerDNSProviderSolver) getHostedZone(domain string) (*int, error) 
 	return zones[0].Id, nil
 }
 
-func (c *softlayerDNSProviderSolver) findTxtRecords(zone int, entry string) ([]datatypes.Dns_Domain_ResourceRecord, error) {
+func (c *softlayerDNSProviderSolver) findTxtRecords(session *session.Session, zone int, entry string) ([]datatypes.Dns_Domain_ResourceRecord, error) {
 	txtType := "txt"
 	// Look for existing records.
-	svc := services.GetDnsDomainService(c.session)
+	svc := services.GetDnsDomainService(session)
 
 	filters := filter.New(
 		filter.Path("resourceRecords.type").Eq(txtType),
