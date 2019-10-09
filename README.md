@@ -2,6 +2,8 @@
 
 This is a webhook solver for [Softlayer](http://www.softlayer.com).
 
+[![Docker Repository on Quay](https://quay.io/repository/cgroschupp/cert-manager-webhook-softlayer/status "Docker Repository on Quay")](https://quay.io/repository/cgroschupp/cert-manager-webhook-softlayer)
+
 ## Prerequisites
 
 * [cert-manager](https://github.com/jetstack/cert-manager): *tested with 0.8.0*
