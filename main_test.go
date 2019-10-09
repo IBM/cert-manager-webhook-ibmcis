@@ -18,7 +18,7 @@ func TestRunsSuite(t *testing.T) {
 
 	solver := &softlayerDNSProviderSolver{}
 	fixture := dns.NewFixture(solver,
-		dns.SetBinariesPath("/home/christian/.go/src/github.com/jetstack/cert-manager/bazel-genfiles/hack/bin"),
+		dns.SetBinariesPath("__main__/hack/bin"),
 		dns.SetResolvedZone(zone),
 		dns.SetManifestPath("testdata/softlayer-solver"),
 	)
