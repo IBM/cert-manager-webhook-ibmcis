@@ -16,6 +16,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20190413053546-d0acb7a76918
 	k8s.io/apimachinery v0.0.0-20190413052414-40a3f73b0fa2
 	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/klog v0.2.0
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190413052642-108c485f896e

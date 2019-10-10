@@ -10,6 +10,7 @@ import (
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
@@ -103,6 +104,7 @@ func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, n
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+	klog.Infof("call present: namespace=%s, zone=%s", ch.ResourceNamespace, ch.ResolvedZone)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -201,9 +203,10 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+	klog.Info("Initialize softlayer solver")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get k8s client: %v", err)
 	}
 
 	c.client = cl
