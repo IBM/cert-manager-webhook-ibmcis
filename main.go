@@ -107,31 +107,31 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 	klog.Infof("call present: namespace=%s, zone=%s", ch.ResourceNamespace, ch.ResolvedZone)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to load config: %s", err)
 	}
 
 	provider, err := c.provider(&cfg, ch.ResourceNamespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get provider: %s", err)
 	}
 
 	zone, err := c.getHostedZone(provider, ch.ResolvedZone)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get hosted zone: %s", err)
 	}
 
 	// Look for existing records.
 	svc := services.GetDnsDomainService(provider)
 	records, err := svc.Id(*zone).GetResourceRecords()
 	if len(records) == 0 || err != nil {
-		return err
+		return fmt.Errorf("unable to get resource records: %s", err)
 	}
 
 	entry := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
 
 	recordsTxt, err := c.findTxtRecords(provider, *zone, entry, ch.Key)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to find txt records: %s", err)
 	}
 
 	if len(recordsTxt) > 0 {
@@ -143,17 +143,16 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 		svcRecord := services.GetDnsDomainResourceRecordService(provider)
 		del, err := svcRecord.DeleteObjects(recordsTxt)
 		if del == false || err != nil {
-			return err
+			return fmt.Errorf("unable to delete objects: %s", err)
 		}
 	}
 
 	ttl := 60
 	_, err = svc.Id(*zone).CreateTxtRecord(&entry, &ch.Key, &ttl)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create txt record: %s", err)
 	}
 
-	// TODO: add code that sets a record in the DNS provider's console
 	return nil
 }
 
@@ -206,7 +205,7 @@ func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, s
 	klog.Info("Initialize softlayer solver")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
-		return fmt.Errorf("unable to get k8s client: %v", err)
+		return fmt.Errorf("unable to get k8s client: %s", err)
 	}
 
 	c.client = cl
