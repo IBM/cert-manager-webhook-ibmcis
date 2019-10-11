@@ -20,7 +20,7 @@ func TestRunsSuite(t *testing.T) {
 	fixture := dns.NewFixture(solver,
 		dns.SetBinariesPath("__main__/hack/bin"),
 		dns.SetResolvedZone(zone),
-		dns.SetManifestPath("testdata/softlayer-solver"),
+		dns.SetManifestPath("testdata/softlayer"),
 	)
 
 	fixture.RunConformance(t)

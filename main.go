@@ -79,7 +79,7 @@ type softlayerDNSProviderConfig struct {
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
 func (c *softlayerDNSProviderSolver) Name() string {
-	return "softlayer-solver"
+	return "softlayer"
 }
 
 func (c *softlayerDNSProviderSolver) validate(cfg *softlayerDNSProviderConfig) error {

@@ -148,7 +148,7 @@ mkdir -p __main__/hack
 wget -O- https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.14.1-linux-amd64.tar.gz | tar xz --strip-components=1 -C __main__/hack
 ```
 
-Then modify `testdata/softlayer-solver/config.json` to setup the configs.
+Then modify `testdata/softlayer/config.json` to setup the configs.
 
 Now you can run the test suite with:
 
