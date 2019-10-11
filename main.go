@@ -82,10 +82,30 @@ func (c *softlayerDNSProviderSolver) Name() string {
 	return "softlayer-solver"
 }
 
+func (c *softlayerDNSProviderSolver) validate(cfg *softlayerDNSProviderConfig) error {
+	// Check that the username is defined
+	if cfg.Username == "" {
+		return fmt.Errorf("No Softlayer username provided")
+	}
+
+	// Try to load the API secret name
+	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
+		return fmt.Errorf("No Softlayer API secret name provided")
+	}
+
+	// Try to load the API secret key
+	if cfg.APIKeySecretRef.Key == "" {
+		return fmt.Errorf("No Softlayer API secret keys provided")
+	}
+	return nil
+}
+
 func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, namespace string) (*session.Session, error) {
-	sec, err := c.client.CoreV1().Secrets(namespace).Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metav1.GetOptions{})
+	secretName := cfg.APIKeySecretRef.LocalObjectReference.Name
+	klog.V(6).Infof("Try to load secret `%s` with key `%s`", secretName, cfg.APIKeySecretRef.Key)
+	sec, err := c.client.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get secret `%s`; %v", secretName, err)
 	}
 
 	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
@@ -104,7 +124,7 @@ func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, n
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	klog.Infof("call present: namespace=%s, zone=%s", ch.ResourceNamespace, ch.ResolvedZone)
+	klog.V(6).Infof("call function Present: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return fmt.Errorf("unable to load config: %s", err)
@@ -163,6 +183,7 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+	klog.V(6).Infof("call function CleanUp: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -202,7 +223,6 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	klog.Info("Initialize softlayer solver")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return fmt.Errorf("unable to get k8s client: %s", err)
@@ -223,7 +243,6 @@ func loadConfig(cfgJSON *extapi.JSON) (softlayerDNSProviderConfig, error) {
 	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
 		return cfg, fmt.Errorf("error decoding solver config: %v", err)
 	}
-
 	return cfg, nil
 }
 
