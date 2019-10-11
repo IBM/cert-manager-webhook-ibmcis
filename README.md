@@ -75,7 +75,7 @@ spec:
           solverName: softlayer
           config:
             username: 12345 # REPLACE WITH USERNAME FROM SOFTLAYER!!!
-            apiTokenSecretRef:
+            apiKeySecretRef:
               key: api-token
               name: softlayer-credentials
 ```
@@ -105,7 +105,7 @@ spec:
           solverName: softlayer
           config:
             username: 12345 # REPLACE WITH USERNAME FROM SOFTLAYER!!!
-            apiTokenSecretRef:
+            apiKeySecretRef:
               key: api-token
               name: softlayer-credentials
 ```
@@ -114,7 +114,17 @@ spec:
 
 1. Issue a certificate
 ```yaml
-#TODO
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: example-com
+spec:
+  commonName: example-com
+  dnsNames:
+  - example-com
+  issuerRef:
+    name: letsencrypt-staging
+  secretName: example-com-tls
 ```
 
 ### Automatically creating Certificates for Ingress resources
@@ -143,5 +153,5 @@ Then modify `testdata/softlayer-solver/config.json` to setup the configs.
 Now you can run the test suite with:
 
 ```bash
-TEST_ZONE_NAME=example.com go test .
+TEST_ZONE_NAME=example.com. go test .
 ```
