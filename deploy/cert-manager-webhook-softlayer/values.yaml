@@ -8,6 +8,7 @@
 # here is recommended.
 groupName: acme.groschupp.org
 
+logLevel: 3
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
