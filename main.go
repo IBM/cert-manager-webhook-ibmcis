@@ -124,7 +124,7 @@ func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, n
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	klog.V(6).Infof("call function Present: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone)
+	klog.V(6).Infof("call function Present: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return fmt.Errorf("unable to load config: %s", err)
@@ -183,7 +183,7 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	klog.V(6).Infof("call function CleanUp: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone)
+	klog.V(6).Infof("call function CleanUp: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
