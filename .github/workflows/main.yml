@@ -4,14 +4,14 @@ on: push
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Helm Publish
-      uses: cgroschupp/helm-gh-pages-action@master
-      with:
-        charts-folder: deploy
-        access-token: ${{ secrets.ACCESS_TOKEN }}
-        repo: cgroschupp/helm-charts
+      - uses: actions/checkout@v1
+      - name: Helm Publish
+        uses: cgroschupp/helm-gh-pages-action@master
+        with:
+          charts-folder: deploy
+          access-token: ${{ secrets.ACCESS_TOKEN }}
+          repo: cgroschupp/helm-charts
+          deploy-branch: gh-pages
