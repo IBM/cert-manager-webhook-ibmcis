@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -68,8 +68,8 @@ type softlayerDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	Username        string                          `json:"username"`
-	APIKeySecretRef certmanagerv1.SecretKeySelector `json:"apiKeySecretRef"`
+	Username        string                   `json:"username"`
+	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
