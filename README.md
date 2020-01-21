@@ -52,7 +52,7 @@ kubectl --namespace cert-manager create secret generic \
 
 4. Create a staging issuer *Optional*
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt-staging
@@ -82,7 +82,7 @@ spec:
 
 5. Create a production issuer
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt-prod
@@ -114,7 +114,7 @@ spec:
 
 1. Issue a certificate
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: example-com
