@@ -14,7 +14,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: quay.io/cgroschupp/cert-manager-webhook-softlayer
+  repository: de.icr.io/borup/cert-manager-webhook-ibmcloud
   tag: latest
   pullPolicy: IfNotPresent
 
