@@ -1,4 +1,4 @@
-module github.com/cgroschupp/cert-manager-webhook-softlayer
+module github.com/jb-dk/cert-manager-webhook-ibmcis
 
 go 1.12
 

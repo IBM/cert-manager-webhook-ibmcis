@@ -16,11 +16,11 @@ func TestRunsSuite(t *testing.T) {
 	// snippet of valid configuration that should be included on the
 	// ChallengeRequest passed as part of the test cases.
 
-	solver := &softlayerDNSProviderSolver{}
+	solver := &ibmcisDNSProviderSolver{}
 	fixture := dns.NewFixture(solver,
 		dns.SetBinariesPath("__main__/hack/bin"),
 		dns.SetResolvedZone(zone),
-		dns.SetManifestPath("testdata/softlayer"),
+		dns.SetManifestPath("testdata/ibmcis"),
 	)
 
 	fixture.RunConformance(t)

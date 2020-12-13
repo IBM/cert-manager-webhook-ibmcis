@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cert-manager-webhook-ibmcis
+type: Opaque
+data:
+  api-key: <BASE64 API KEY>

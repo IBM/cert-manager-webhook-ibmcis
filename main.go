@@ -17,15 +17,8 @@ import (
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 
-	"github.com/softlayer/softlayer-go/datatypes"
-	"github.com/softlayer/softlayer-go/filter"
-	"github.com/softlayer/softlayer-go/services"
-	"github.com/softlayer/softlayer-go/session"
-
 	cis "github.com/IBM-Cloud/bluemix-go/api/cis/cisv1"
 	cissession "github.com/IBM-Cloud/bluemix-go/session"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -41,26 +34,26 @@ func main() {
 		panic("IC_API_KEY must be specified")
 	}
 
-	// This will register our softlayer DNS provider with the webhook serving
+	// This will register our IBM Cloud Internet Service (ibmcis) DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
 	// You can register multiple DNS provider implementations with a single
 	// webhook, where the Name() method will be used to disambiguate between
 	// the different implementations.
 	cmd.RunWebhookServer(GroupName,
-		&softlayerDNSProviderSolver{},
+		&ibmcisDNSProviderSolver{},
 	)
 }
 
-// softlayerDNSProviderSolver implements the provider-specific logic needed to
+// ibmcisDNSProviderSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
 // To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
 // interface.
-type softlayerDNSProviderSolver struct {
+type ibmcisDNSProviderSolver struct {
 	client    *kubernetes.Clientset
 	ibmCisAPI cis.CisServiceAPI
 }
 
-// softlayerDNSProviderConfig is a structure that is used to decode into when
+// ibmcisDNSProviderConfig is a structure that is used to decode into when
 // solving a DNS01 challenge.
 // This information is provided by cert-manager, and may be a reference to
 // additional configuration that's needed to solve the challenge for this
@@ -74,7 +67,7 @@ type softlayerDNSProviderSolver struct {
 // You should not include sensitive information here. If credentials need to
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
-type softlayerDNSProviderConfig struct {
+type ibmcisDNSProviderConfig struct {
 	// Change the two fields below according to the format of the configuration
 	// to be decoded.
 	// These fields will be set by users in the
@@ -90,59 +83,37 @@ type softlayerDNSProviderConfig struct {
 // solvers configured with the same Name() **so long as they do not co-exist
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
-func (c *softlayerDNSProviderSolver) Name() string {
-	log.Info("Name() called")
-	return "softlayer"
+func (c *ibmcisDNSProviderSolver) Name() string {
+	log.Info("Name() called - will return 'ibmcis'")
+	return "ibmcis"
 }
 
-func (c *softlayerDNSProviderSolver) validate(cfg *softlayerDNSProviderConfig) error {
-	// Check that the username is defined
-	log.Infof("validate(%s)", cfg)
+// func (c *ibmcisDNSProviderSolver) validate(cfg *ibmcisDNSProviderConfig) error {
+// 	// Check that the username is defined
+// 	log.Infof("validate(%s)", cfg)
 
-	if cfg.CisCRN == "" {
-		return fmt.Errorf("No IBM Cloud Internet Service CRN provided")
-	}
+// 	if cfg.CisCRN == "" {
+// 		return fmt.Errorf("No IBM Cloud Internet Service CRN provided")
+// 	}
 
-	// Try to load the API secret name
-	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
-		return fmt.Errorf("No API key to access IBM Cloud Internet Service provided")
-	}
+// 	// Try to load the API secret name
+// 	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
+// 		return fmt.Errorf("No API key to access IBM Cloud Internet Service provided")
+// 	}
 
-	// Try to load the API secret key
-	if cfg.APIKeySecretRef.Key == "" {
-		return fmt.Errorf("No API key to access IBM Cloud Internet Service provided")
-	}
-	return nil
-}
-
-func (c *softlayerDNSProviderSolver) provider(cfg *softlayerDNSProviderConfig, namespace string) (*session.Session, error) {
-	log.Infof("provider(namespace='%s' )", namespace)
-	secretName := cfg.APIKeySecretRef.LocalObjectReference.Name
-	log.Infof("Try to load secret `%s` with key `%s`", secretName, cfg.APIKeySecretRef.Key)
-	klog.V(6).Infof("Try to load secret `%s` with key `%s`", secretName, cfg.APIKeySecretRef.Key)
-	sec, err := c.client.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-	if err != nil {
-		log.Errorf("unable to get secret `%s`; %v", secretName, err)
-		return nil, fmt.Errorf("unable to get secret `%s`; %v", secretName, err)
-	}
-
-	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
-	if !ok {
-		log.Errorf("Key %q not found in secret \"%s/%s\"", cfg.APIKeySecretRef.Key, cfg.APIKeySecretRef.LocalObjectReference.Name, namespace)
-		return nil, fmt.Errorf("Key %q not found in secret \"%s/%s\"", cfg.APIKeySecretRef.Key, cfg.APIKeySecretRef.LocalObjectReference.Name, namespace)
-	}
-
-	apiKey := string(secBytes)
-
-	return session.New(cfg.CisCRN, apiKey), nil
-}
+// 	// Try to load the API secret key
+// 	if cfg.APIKeySecretRef.Key == "" {
+// 		return fmt.Errorf("No API key to access IBM Cloud Internet Service provided")
+// 	}
+// 	return nil
+// }
 
 // Present is responsible for actually presenting the DNS record with the
 // DNS provider.
 // This method should tolerate being called multiple times with the same value.
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
-func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+func (c *ibmcisDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	// log.Infof("Present(ch='%s' )", ch)
 	// log.Infof("call function Present: config %s", ch.Config)
 
@@ -207,7 +178,7 @@ func (c *softlayerDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 // value provided on the ChallengeRequest should be cleaned up.
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
-func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+func (c *ibmcisDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 	log.Infof("CleanUp(namespace=%s, zone=%s, fqdn=%s, key=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN, ch.Key)
 	klog.V(6).Infof("call function CleanUp: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
@@ -278,7 +249,7 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 // provider accounts.
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
-func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (c *ibmcisDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	log.Infof("Starting up webhook service")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -307,10 +278,10 @@ func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, s
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (softlayerDNSProviderConfig, error) {
+func loadConfig(cfgJSON *extapi.JSON) (ibmcisDNSProviderConfig, error) {
 	log.Debug("loadConfig()")
 
-	cfg := softlayerDNSProviderConfig{}
+	cfg := ibmcisDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
@@ -322,60 +293,4 @@ func loadConfig(cfgJSON *extapi.JSON) (softlayerDNSProviderConfig, error) {
 	log.Debugf("loadConfig(%s)", cfg)
 
 	return cfg, nil
-}
-
-// getHostedZone returns the managed-zone
-func (c *softlayerDNSProviderSolver) getHostedZone(session *session.Session, domain string) (*int, error) {
-	log.Infof("getHostedZone(%s)", domain)
-	svc := services.GetAccountService(session)
-
-	filters := filter.New(
-		filter.Path("domains.name").Eq(strings.TrimSuffix(domain, ".")),
-	)
-
-	zones, err := svc.Filter(filters.Build()).GetDomains()
-
-	if err != nil {
-		log.Errorf("Softlayer API call failed: %v", err)
-		return nil, fmt.Errorf("Softlayer API call failed: %v", err)
-	}
-
-	if len(zones) == 0 {
-		log.Errorf("No matching Softlayer domain found for domain %s", domain)
-		return nil, fmt.Errorf("No matching Softlayer domain found for domain %s", domain)
-	}
-
-	if len(zones) > 1 {
-		log.Errorf("Too many Softlayer domains found for domain %s", domain)
-		return nil, fmt.Errorf("Too many Softlayer domains found for domain %s", domain)
-	}
-
-	return zones[0].Id, nil
-}
-
-func (c *softlayerDNSProviderSolver) findTxtRecords(session *session.Session, zone int, entry, key string) ([]datatypes.Dns_Domain_ResourceRecord, error) {
-	log.Infof("findTxtRecords(zone=%d, entry=%s, key=%s)", zone, entry, key)
-
-	txtType := "txt"
-	// Look for existing records.
-	svc := services.GetDnsDomainService(session)
-
-	filters := filter.New(
-		filter.Path("resourceRecords.type").Eq(txtType),
-		filter.Path("resourceRecords.host").Eq(entry),
-	)
-
-	recs, err := svc.Id(zone).Filter(filters.Build()).GetResourceRecords()
-	if err != nil {
-		return nil, err
-	}
-
-	found := []datatypes.Dns_Domain_ResourceRecord{}
-	for _, r := range recs {
-		if *r.Type == txtType && *r.Host == entry && *r.Data == key {
-			found = append(found, r)
-		}
-	}
-
-	return found, nil
 }

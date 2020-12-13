@@ -1,23 +1,23 @@
-# Softlayer Webhook for Cert Manager
+# IBM Cloud Internet Service Webhook for Cert Manager
 
-This is a webhook solver for [Softlayer](http://www.softlayer.com).
+This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/catalog/services/internet-services#about).
 
-[![Docker Repository on Quay](https://quay.io/repository/cgroschupp/cert-manager-webhook-softlayer/status "Docker Repository on Quay")](https://quay.io/repository/cgroschupp/cert-manager-webhook-softlayer)
+[![Docker Repository on Quay](https://quay.io/repository/borup.work/cert-manager-webhook-ibmcis/status "Docker Repository on Quay")](https://quay.io/repository/borup.work/cert-manager-webhook-ibmcis)
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 0.8.0*
-    - [Installing on Kubernetes](https://docs.cert-manager.io/en/release-0.8/getting-started/install/kubernetes.html)
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.1.0*
+    - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ## Installation
 
 ```bash
-helm install --name cert-manager-webhook-softlayer ./deploy/cert-manager-webhook-softlayer
+helm install --name cert-manager-webhook-ibmcis ./deploy/cert-manager-webhook-cis
 ```
 
 ## Issuer
 
-1. Generate Username and API Token from Softlayer
+1. Generate API-KEY from IBM Cloud 
 2. Create secret to store the API Token
 ```bash
 kubectl --namespace cert-manager create secret generic \
@@ -52,7 +52,7 @@ kubectl --namespace cert-manager create secret generic \
 
 4. Create a staging issuer *Optional*
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: letsencrypt-staging
@@ -71,18 +71,19 @@ spec:
     solvers:
     - dns01:
         webhook:
-          groupName: acme.groschupp.org
-          solverName: softlayer
+          groupName: acme.borup.work
+          solverName: ibmcis
           config:
-            username: 12345 # REPLACE WITH USERNAME FROM SOFTLAYER!!!
-            apiKeySecretRef:
-              key: api-token
-              name: softlayer-credentials
+            cisCRN: "crn:v1:bluemix:public:internet-svcs:global:***::"
+      selector:
+        dnsZones:
+        - 'borup.work'
+
 ```
 
 5. Create a production issuer
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: letsencrypt-prod
@@ -101,20 +102,20 @@ spec:
     solvers:
     - dns01:
         webhook:
-          groupName: acme.groschupp.org
-          solverName: softlayer
+          groupName: acme.borup.work
+          solverName: ibmcis
           config:
-            username: 12345 # REPLACE WITH USERNAME FROM SOFTLAYER!!!
-            apiKeySecretRef:
-              key: api-token
-              name: softlayer-credentials
+            cisCRN: "crn:v1:bluemix:public:internet-svcs:global:***::"
+      selector:
+        dnsZones:
+        - 'borup.work'
 ```
 
 ## Certificate
 
 1. Issue a certificate
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: example-com
@@ -148,14 +149,14 @@ mkdir -p __main__/hack
 wget -O- https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.14.1-linux-amd64.tar.gz | tar xz --strip-components=1 -C __main__/hack
 ```
 
-Then modify `testdata/softlayer/config.json` to setup the configs.
+Then modify `testdata/ibmcis/config.json` to setup the configs.
 
 Now you can run the test suite with:
 
 ```bash
 TEST_ZONE_NAME=example.com. go test .
 ```
-### Test via dockerfile (Mac test binaries does not exist)
+### Test via Docker (Mac test binaries not described in above section)
 
 ```bash
 #CRN to be used in config.json as cisCRN
@@ -164,7 +165,7 @@ ibmcloud resource service-instance <CIS INSTANCE NAME> -g <RESOURCE GROJO> --out
 docker run -it -v${PWD}:/workspace -w /workspace golang:1.12 /bin/bash
 apt update
 apt upgrade -y
-apt-get install bzr
+apt-get install -y bzr 
 #TEST_ZONE_NAME=example.com. go test .
 cat > testdata/softlayer/config.json <<EOF
 {
@@ -177,3 +178,7 @@ export IC_API_KEY=xxxxx
 TEST_ZONE_NAME=borup.work. go test .
 
 ```
+
+## Push image to quay.io
+
+docker login quay.io
