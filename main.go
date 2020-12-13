@@ -248,18 +248,18 @@ func (c *softlayerDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 				// and with the correct content will be deleted
 				for _, myDnsrec := range myDnsrecs {
 					if myDnsrec.DnsType != "TXT" {
-						log.Debugf(" Skipping non TXT record: %s", myDnsrec)
+						log.Debugf(" Skipping non TXT record: %s (%s)", myDnsrec.Name, myDnsrec.DnsType)
 						continue
 					}
 					if (myDnsrec.Name + ".") != ch.ResolvedFQDN {
-						log.Debugf(" Skipping TXT record with different name: %s", myDnsrec)
+						log.Debugf(" Skipping TXT record with different name: %s", myDnsrec.Name)
 						continue
 					}
 					if myDnsrec.Content != ch.Key {
-						log.Debugf(" Skipping TXT record with different content: %s", myDnsrec)
+						log.Debugf(" Skipping TXT record (%s) with different content: %s", myDnsrec.Name, myDnsrec.Content)
 						continue
 					}
-					log.Infof("Found record to remove as challenge, will request to delete it now. Rec: %s", myDnsrec)
+					log.Infof("Found record to remove as challenge, will request to delete it now. Rec: %s", myDnsrec.Id)
 					dnsAPI.DeleteDns(crn, zoneid.Id, myDnsrec.Id)
 				}
 			}
@@ -286,7 +286,7 @@ func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, s
 		return fmt.Errorf("unable to get k8s client: %s", err)
 	}
 
-	log.Debugf("Kubernetes client in place")
+	log.Debug("Kubernetes client in place")
 
 	ibmSession, ibmErr := cissession.New()
 
@@ -298,7 +298,7 @@ func (c *softlayerDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, s
 	if ibmErr != nil {
 		log.Fatal(ibmErr)
 	}
-	log.Debugf("IBM Cloud Internet Services API instance %s", ibmCisAPI)
+	log.Info("IBM Cloud Internet Services API instance connection in place")
 
 	c.ibmCisAPI = ibmCisAPI
 	c.client = cl

@@ -155,3 +155,25 @@ Now you can run the test suite with:
 ```bash
 TEST_ZONE_NAME=example.com. go test .
 ```
+### Test via dockerfile (Mac test binaries does not exist)
+
+```bash
+#CRN to be used in config.json as cisCRN
+#ic resource service-instance borup.work-is -g default --output json | jq .[0].crn
+ibmcloud resource service-instance <CIS INSTANCE NAME> -g <RESOURCE GROJO> --output json | jq .[0].crn 
+docker run -it -v${PWD}:/workspace -w /workspace golang:1.12 /bin/bash
+apt update
+apt upgrade -y
+apt-get install bzr
+#TEST_ZONE_NAME=example.com. go test .
+cat > testdata/softlayer/config.json <<EOF
+{
+    "cisCRN": "crn:v1:bluemix:public:internet-svcs:global:xxxxxxxx::"
+}
+EOF
+
+export IC_API_KEY=xxxxx
+
+TEST_ZONE_NAME=borup.work. go test .
+
+```
