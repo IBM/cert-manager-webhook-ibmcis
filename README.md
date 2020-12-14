@@ -9,48 +9,51 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 * [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.1.0*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
+```bash
+#kubectl create namespace cert-manager
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
+ # kubectl get pods -n cert-manager
+
+```
+
 ## Installation
+_Notice: The pod will not startup until the steps under [configuration](#Issuer) is performed (there will be a secret there is not created until the steps are taken, so do not expect it just starts until that is in place )
+
+Assuming your installation has 1. cert-manager running in name-space `cert-manager` and 2. accept this webhook will be installed into namespace `cert-manager-webhook-ibmcis`, 3. the API groups `acme.borup.work` will be used, then it is recommended to install via this pre-defined file .
 
 ```bash
-helm install --name cert-manager-webhook-ibmcis ./deploy/cert-manager-webhook-cis
+kubectl apply -f https://raw.githubusercontent.com/jb-dk/cert-manager-webhook-ibmcis/master/cert-manager-webhook-ibmcis.yaml
+```
+
+### How cert-manager-webhook-ibmcis.yaml is created (information)
+This is just to help me remember how I created the static version of the file and for you to be inspired if you want to try to run it in a different configuration, however I will warn this is not the simplest thing to make it run in a different namespace.
+
+```bash
+helm template --name-template cert-manager-webhook-ibmcis ./deploy/cert-manager-webhook-ibmcis > cert-manager-webhook-ibmcis.yaml
+
+```
+
+### Customized installation
+Only do the steps in this section - customized installation - if you did not do the step in installation.
+```bash
+helm install --name-template cert-manager-webhook-ibmcis ./deploy/cert-manager-webhook-ibmcis
 ```
 
 ## Issuer
 
-1. Generate API-KEY from IBM Cloud 
-2. Create secret to store the API Token
-```bash
-kubectl --namespace cert-manager create secret generic \
-    softlayer-credentials --from-literal=api-token='<SOFTLAYER_API_TOKEN>'
-```
+0. (Optional but recommended) Generate a service id (`ibmcloud iam service-id-create cert-manager-webhook-ibmcis-sid -d "Service id that cert-manager-webhook-ibmcis uses"`), grant it "service access" level permission as `reader,writer,manager` to the relevant IBM Cloud Internet Service(s) only (example that grants access to all instances of IBM Cloud Internet Services: `ibmcloud iam service-policy-create cert-manager-webhook-ibmcis-sid --service-name internet-svcs  --roles Reader,Writer,Manager `)
 
-3. Grant permission for service-account to get the secret
-```yaml
-  apiVersion: rbac.authorization.k8s.io/v1
-  kind: Role
-  metadata:
-    name: cert-manager-webhook-softlayer:secret-reader
-  rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["softlayer-credentials"]
-    verbs: ["get", "watch"]
-  ---
-  apiVersion: rbac.authorization.k8s.io/v1beta1
-  kind: RoleBinding
-  metadata:
-    name: cert-manager-webhook-softlayer:secret-reader
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
-    kind: Role
-    name: cert-manager-webhook-softlayer:secret-reader
-  subjects:
-    - apiGroup: ""
-      kind: ServiceAccount
-      name: cert-manager-webhook-softlayer
+1. Generate API-KEY from IBM Cloud (example: `ibmcloud iam service-api-key-create cert-manager-webhook-ibmcis-sid-apikey cert-manager-webhook-ibmcis-sid -d "API key used for cert-manager-webhook-ibmcis to do the DNS01 ACME flow signed certificates"`)
+2. Create a namespace to run this webhook in, recommend `cert-manager-webhook-ibmcis`. (like `kubectl create namespace cert-manager-webhook-ibmcis`)
+
+3. Create secret to store the API Token
+```bash
+kubectl --namespace cert-manager-webhook-ibmcis create secret generic \
+    ibmcis-credentials --from-literal=api-token='<IC_API_KEY>'
 ```
 
 4. Create a staging issuer *Optional*
+If you want to test and avoid rate-limit levels for production lets encryp ise this step (certificate validity is not for production though)
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -140,7 +143,7 @@ else they will have undetermined behaviour when used with cert-manager.
 **It is essential that you configure and run the test suite when creating a
 DNS01 webhook.**
 
-An example Go test file has been provided in [main_test.go]().
+A Go test file for this provider is provided in [main_test.go](), and has been used for tests (via docker see below section).
 
 Before you can run the test suite, you need to download the test binaries:
 
@@ -161,7 +164,7 @@ TEST_ZONE_NAME=example.com. go test .
 ```bash
 #CRN to be used in config.json as cisCRN
 #ic resource service-instance borup.work-is -g default --output json | jq .[0].crn
-ibmcloud resource service-instance <CIS INSTANCE NAME> -g <RESOURCE GROJO> --output json | jq .[0].crn 
+ibmcloud resource service-instance <CIS INSTANCE NAME> -g <RESOURCE GROUP> --output json | jq .[0].crn 
 docker run -it -v${PWD}:/workspace -w /workspace golang:1.12 /bin/bash
 apt update
 apt upgrade -y
@@ -178,7 +181,3 @@ export IC_API_KEY=xxxxx
 TEST_ZONE_NAME=borup.work. go test .
 
 ```
-
-## Push image to quay.io
-
-docker login quay.io

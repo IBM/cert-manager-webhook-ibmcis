@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -11,7 +12,7 @@ metadata:
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
 # This ConfigMap is automatically created by the Kubernetes apiserver.
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:webhook-authentication-reader
@@ -29,11 +30,11 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.namespace }}
 ---
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:auth-delegator
@@ -50,10 +51,12 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+#    namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.namespace }}
+
 ---
 # Grant cert-manager permission to validate using our apiserver
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:domain-solver
@@ -70,7 +73,7 @@ rules:
     verbs:
       - 'create'
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:domain-solver
@@ -88,3 +91,4 @@ subjects:
     kind: ServiceAccount
     name: {{ .Values.certManager.serviceAccountName }}
     namespace: {{ .Values.certManager.namespace }}
+#    namespace: {{ .Values.namespace }}

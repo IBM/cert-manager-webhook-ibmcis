@@ -5,7 +5,8 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.selfSignedIssuer" . }}
-  namespace: {{ .Release.Namespace | quote }}
+#  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ .Values.namespace | quote }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -21,7 +22,8 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.rootCACertificate" . }}
-  namespace: {{ .Release.Namespace | quote }}
+#  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ .Values.namespace | quote }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -42,7 +44,8 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.rootCAIssuer" . }}
-  namespace: {{ .Release.Namespace | quote }}
+#  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ .Values.namespace | quote }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -59,7 +62,8 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.servingCertificate" . }}
-  namespace: {{ .Release.Namespace | quote }}
+#  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ .Values.namespace | quote }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -72,5 +76,5 @@ spec:
     name: {{ include "cert-manager-webhook-ibmcis.rootCAIssuer" . }}
   dnsNames:
   - {{ include "cert-manager-webhook-ibmcis.fullname" . }}
-  - {{ include "cert-manager-webhook-ibmcis.fullname" . }}.{{ .Release.Namespace }}
-  - {{ include "cert-manager-webhook-ibmcis.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "cert-manager-webhook-ibmcis.fullname" . }}.{{ .Values.namespace }}
+  - {{ include "cert-manager-webhook-ibmcis.fullname" . }}.{{ .Values.namespace }}.svc

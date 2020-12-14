@@ -1,0 +1,290 @@
+---
+# Source: cert-manager-webhook-ibmcis/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-manager-webhook-ibmcis
+  namespace: cert-manager-webhook-ibmcis
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+---
+# Source: cert-manager-webhook-ibmcis/templates/rbac.yaml
+# Grant cert-manager permission to validate using our apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-webhook-ibmcis:domain-solver
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+rules:
+  - apiGroups:
+      - acme.borup.work
+    resources:
+      - '*'
+    verbs:
+      - 'create'
+---
+# Source: cert-manager-webhook-ibmcis/templates/rbac.yaml
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-webhook-ibmcis:auth-delegator
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-ibmcis
+#    namespace: default
+    namespace: cert-manager-webhook-ibmcis
+---
+# Source: cert-manager-webhook-ibmcis/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-webhook-ibmcis:domain-solver
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-manager-webhook-ibmcis:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+#    namespace: cert-manager-webhook-ibmcis
+---
+# Source: cert-manager-webhook-ibmcis/templates/rbac.yaml
+# Grant the webhook permission to read the ConfigMap containing the Kubernetes
+# apiserver's requestheader-ca-certificate.
+# This ConfigMap is automatically created by the Kubernetes apiserver.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-webhook-ibmcis:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-ibmcis
+    namespace: cert-manager-webhook-ibmcis
+---
+# Source: cert-manager-webhook-ibmcis/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-manager-webhook-ibmcis
+  namespace: cert-manager-webhook-ibmcis
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app: cert-manager-webhook-ibmcis
+    release: cert-manager-webhook-ibmcis
+---
+# Source: cert-manager-webhook-ibmcis/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cert-manager-webhook-ibmcis
+  namespace: cert-manager-webhook-ibmcis
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  replicas: 
+  selector:
+    matchLabels:
+      app: cert-manager-webhook-ibmcis
+      release: cert-manager-webhook-ibmcis
+  template:
+    metadata:
+      labels:
+        app: cert-manager-webhook-ibmcis
+        release: cert-manager-webhook-ibmcis
+    spec:
+      serviceAccountName: cert-manager-webhook-ibmcis
+      containers:
+        - name: cert-manager-webhook-ibmcis
+          image: "quay.io/borup.work/cert-manager-webhook-ibmcis:latest"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+          env:
+            - name: GROUP_NAME
+              value: "acme.borup.work"
+            - name: IC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ibmcis-credentials 
+                  key: api-token
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+          resources:
+            {}
+      volumes:
+        - name: certs
+          secret:
+            secretName: cert-manager-webhook-ibmcis-webhook-tls
+---
+# Source: cert-manager-webhook-ibmcis/templates/apiservice.yaml
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.acme.borup.work
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+  annotations:
+#    cert-manager.io/inject-ca-from: "default/cert-manager-webhook-ibmcis-webhook-tls"
+    cert-manager.io/inject-ca-from: "cert-manager-webhook-ibmcis/cert-manager-webhook-ibmcis-webhook-tls"
+spec:
+  group: acme.borup.work
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: cert-manager-webhook-ibmcis
+#    namespace: default
+    namespace: cert-manager-webhook-ibmcis
+  version: v1alpha1
+---
+# Source: cert-manager-webhook-ibmcis/templates/pki.yaml
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: cert-manager-webhook-ibmcis-ca
+#  namespace: "default"
+  namespace: "cert-manager-webhook-ibmcis"
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  secretName: cert-manager-webhook-ibmcis-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: cert-manager-webhook-ibmcis-selfsign
+  commonName: "ca.cert-manager-webhook-ibmcis.cert-manager"
+  isCA: true
+---
+# Source: cert-manager-webhook-ibmcis/templates/pki.yaml
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: cert-manager-webhook-ibmcis-webhook-tls
+#  namespace: "default"
+  namespace: "cert-manager-webhook-ibmcis"
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  secretName: cert-manager-webhook-ibmcis-webhook-tls
+  duration: 8760h # 1y
+  issuerRef:
+    name: cert-manager-webhook-ibmcis-ca
+  dnsNames:
+  - cert-manager-webhook-ibmcis
+#  - cert-manager-webhook-ibmcis.default
+#  - cert-manager-webhook-ibmcis.default.svc
+  - cert-manager-webhook-ibmcis.cert-manager-webhook-ibmcis
+  - cert-manager-webhook-ibmcis.cert-manager-webhook-ibmcis.svc
+#  - cert-manager-webhook-ibmcis.cert-manager-webhook-ibmcis.svc.cluster.local
+
+---
+# Source: cert-manager-webhook-ibmcis/templates/pki.yaml
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: cert-manager-webhook-ibmcis-selfsign
+#  namespace: "default"
+  namespace: "cert-manager-webhook-ibmcis"
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  selfSigned: {}
+---
+# Source: cert-manager-webhook-ibmcis/templates/pki.yaml
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: cert-manager-webhook-ibmcis-ca
+#  namespace: "default"
+  namespace: "cert-manager-webhook-ibmcis"
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+spec:
+  ca:
+    secretName: cert-manager-webhook-ibmcis-ca

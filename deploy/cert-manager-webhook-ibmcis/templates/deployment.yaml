@@ -1,7 +1,8 @@
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     app: {{ include "cert-manager-webhook-ibmcis.name" . }}
     chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
@@ -33,6 +34,11 @@ spec:
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
+            - name: IC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ibmcis-credentials 
+                  key: api-token
           ports:
             - name: https
               containerPort: 443
