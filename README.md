@@ -165,19 +165,19 @@ TEST_ZONE_NAME=example.com. go test .
 #CRN to be used in config.json as cisCRN
 #ic resource service-instance borup.work-is -g default --output json | jq .[0].crn
 ibmcloud resource service-instance <CIS INSTANCE NAME> -g <RESOURCE GROUP> --output json | jq .[0].crn 
-docker run -it -v${PWD}:/workspace -w /workspace golang:1.12 /bin/bash
+docker run -it -v${PWD}:/workspace -w /workspace  --env-file .env golang:1.12 /bin/bash
 apt update
 apt upgrade -y
 apt-get install -y bzr 
 #TEST_ZONE_NAME=example.com. go test .
-cat > testdata/softlayer/config.json <<EOF
+cat > testdata/ibmcis/config.json <<EOF
 {
-    "cisCRN": "crn:v1:bluemix:public:internet-svcs:global:xxxxxxxx::"
+    "cisCRN": [ "crn:v1:bluemix:public:internet-svcs:global:xxxxxxxx::" ]
 }
 EOF
 
-export IC_API_KEY=xxxxx
+#export IC_API_KEY=xxxxx
 
-TEST_ZONE_NAME=borup.work. go test .
+TEST_ZONE_NAME=example.com. go test .
 
 ```

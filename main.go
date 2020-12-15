@@ -73,7 +73,7 @@ type ibmcisDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	CisCRN          string                   `json:"cisCRN"`
+	CisCRNs         []string                 `json:"cisCRN"`
 	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
 }
 
@@ -129,9 +129,8 @@ func (c *ibmcisDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	zonesAPI := c.ibmCisAPI.Zones()
 
-	// Lets loop through the CRNs listed, if more than one is provided they should be comma-separated (,)
-	// Todo change it to an array in the Issuer CRD, rather than comma seperated
-	for i, crn := range strings.Split(cfg.CisCRN, ",") {
+	// Lets loop through the CRNs listed
+	for i, crn := range cfg.CisCRNs {
 		log.Debugf("CRN %d - %s", i, crn)
 
 		myZones, ibmErr := zonesAPI.ListZones(crn)
@@ -189,9 +188,8 @@ func (c *ibmcisDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 	zonesAPI := c.ibmCisAPI.Zones()
 
-	// Lets loop through the CRNs listed, if more than one is provided they should be comma-separated (,)
-	// Todo change it to an array in the Issuer CRD, rather than comma seperated
-	for i, crn := range strings.Split(cfg.CisCRN, ",") {
+	// Lets loop through the CRNs listed
+	for i, crn := range cfg.CisCRNs {
 		log.Debugf("CRN %d - %s", i, crn)
 
 		myZones, ibmErr := zonesAPI.ListZones(crn)
