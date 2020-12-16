@@ -136,7 +136,8 @@ func (c *ibmcisDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		myZones, ibmErr := zonesAPI.ListZones(crn)
 
 		if ibmErr != nil {
-			log.Fatal(ibmErr)
+			log.Errorf("While doing Present() and trying to use CRN '%s' an error occured : %s", crn, ibmErr)
+			continue
 		}
 
 		for _, zoneid := range myZones {
@@ -195,7 +196,8 @@ func (c *ibmcisDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		myZones, ibmErr := zonesAPI.ListZones(crn)
 
 		if ibmErr != nil {
-			log.Fatal(ibmErr)
+			log.Errorf("While doing Cleanup() and trying to use CRN '%s' an error occured : %s", crn, ibmErr)
+			continue
 		}
 
 		for _, zoneid := range myZones {
@@ -209,7 +211,8 @@ func (c *ibmcisDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 				myDnsrecs, ibmErr := dnsAPI.ListDns(crn, zoneid.Id)
 				if ibmErr != nil {
-					log.Fatal(ibmErr)
+					log.Error(ibmErr)
+					continue
 				}
 
 				// delete the specific TX record with challenge

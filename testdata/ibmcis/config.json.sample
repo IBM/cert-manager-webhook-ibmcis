@@ -1,3 +1,3 @@
 {
-    "cisCRN": "crn:v1:bluemix:public:internet-svcs:global:xxxxx::"
+    "cisCRNs": [ "crn:v1:bluemix:public:internet-svcs:global:xxxxx::" ]
 }
