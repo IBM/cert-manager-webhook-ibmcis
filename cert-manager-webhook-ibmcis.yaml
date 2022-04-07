@@ -98,6 +98,46 @@ subjects:
     name: cert-manager-webhook-ibmcis
     namespace: cert-manager-webhook-ibmcis
 ---
+## new permission for Kubernetes apiserver > 1.22
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-webhook-ibmcis:flowcontrol-solver
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - 'prioritylevelconfigurations'
+      - 'flowschemas'
+    verbs:
+      - 'list'
+      - 'watch'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-webhook-ibmcis:flowcontrol-solver
+  labels:
+    app: cert-manager-webhook-ibmcis
+    chart: cert-manager-webhook-ibmcis-0.1.0
+    release: cert-manager-webhook-ibmcis
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-manager-webhook-ibmcis:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-ibmcis
+#    namespace: default
+    namespace: cert-manager-webhook-ibmcis
+---
 # Source: cert-manager-webhook-ibmcis/templates/service.yaml
 apiVersion: v1
 kind: Service
@@ -146,7 +186,7 @@ spec:
       serviceAccountName: cert-manager-webhook-ibmcis
       containers:
         - name: cert-manager-webhook-ibmcis
-          image: "quay.io/borup.work/cert-manager-webhook-ibmcis:latest"
+          image: "quay.io/hzhihui/cert-manager-webhook-ibmcis:latest"
           imagePullPolicy: IfNotPresent
           args:
             - --tls-cert-file=/tls/tls.crt
@@ -209,7 +249,7 @@ spec:
 ---
 # Source: cert-manager-webhook-ibmcis/templates/pki.yaml
 # Generate a CA Certificate used to sign certificates for the webhook
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: cert-manager-webhook-ibmcis-ca
@@ -230,7 +270,7 @@ spec:
 ---
 # Source: cert-manager-webhook-ibmcis/templates/pki.yaml
 # Finally, generate a serving certificate for the webhook to use
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: cert-manager-webhook-ibmcis-webhook-tls
@@ -258,7 +298,7 @@ spec:
 # Source: cert-manager-webhook-ibmcis/templates/pki.yaml
 # Create a selfsigned Issuer, in order to create a root CA certificate for
 # signing webhook serving certificates
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: cert-manager-webhook-ibmcis-selfsign
@@ -274,7 +314,7 @@ spec:
 ---
 # Source: cert-manager-webhook-ibmcis/templates/pki.yaml
 # Create an Issuer that uses the above generated CA certificate to issue certs
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: cert-manager-webhook-ibmcis-ca

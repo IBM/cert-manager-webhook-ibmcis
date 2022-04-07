@@ -6,12 +6,12 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.1.0*
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.7.1*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ```bash
 #kubectl create namespace cert-manager
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.1/cert-manager.yaml
  # kubectl get pods -n cert-manager
 
 ```
@@ -77,7 +77,8 @@ spec:
           groupName: acme.borup.work
           solverName: ibmcis
           config:
-            cisCRN: "crn:v1:bluemix:public:internet-svcs:global:***::"
+            cisCRN:
+              - "crn:v1:bluemix:public:internet-svcs:global:***::"
       selector:
         dnsZones:
         - 'borup.work'
@@ -108,7 +109,8 @@ spec:
           groupName: acme.borup.work
           solverName: ibmcis
           config:
-            cisCRN: "crn:v1:bluemix:public:internet-svcs:global:***::"
+            cisCRN:
+              - "crn:v1:bluemix:public:internet-svcs:global:***::"
       selector:
         dnsZones:
         - 'borup.work'

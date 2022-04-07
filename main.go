@@ -2,22 +2,24 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 
 	cis "github.com/IBM-Cloud/bluemix-go/api/cis/cisv1"
+	"github.com/IBM-Cloud/bluemix-go/crn"
 	cissession "github.com/IBM-Cloud/bluemix-go/session"
 )
 
@@ -88,6 +90,29 @@ func (c *ibmcisDNSProviderSolver) Name() string {
 	return "ibmcis"
 }
 
+// Create the CIS client that we will use to add/remove TXT DNS records
+// to a customers CIS instance.
+func (c *ibmcisDNSProviderSolver) cisClient(cfg *ibmcisDNSProviderConfig) (cis.CisServiceAPI, error) {
+	if len(cfg.CisCRNs) == 0 {
+		return nil, errors.New("No CRNs provided")
+	}
+
+	for _, ccrn := range cfg.CisCRNs {
+		if _, err := crn.Parse(ccrn); err != nil {
+			return nil, err
+		}
+	}
+	ibmCloudSession, err := cissession.New()
+	if err != nil {
+		log.Fatalf("IBM Cloud session failed: %s", err)
+		return nil, err
+	}
+
+	log.Info("IBM Cloud Internet Services API instance connection in place")
+
+	return cis.New(ibmCloudSession)
+}
+
 // func (c *ibmcisDNSProviderSolver) validate(cfg *ibmcisDNSProviderConfig) error {
 // 	// Check that the username is defined
 // 	log.Infof("validate(%s)", cfg)
@@ -126,7 +151,10 @@ func (c *ibmcisDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return fmt.Errorf("unable to load config: %s", err)
 	}
 	//	log.Infof("call function Present: config '%s'", cfg)
-
+	c.ibmCisAPI, err = c.cisClient(&cfg)
+	if err != nil {
+		return err
+	}
 	zonesAPI := c.ibmCisAPI.Zones()
 
 	// Lets loop through the CRNs listed
@@ -183,6 +211,11 @@ func (c *ibmcisDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	log.Infof("CleanUp(namespace=%s, zone=%s, fqdn=%s, key=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN, ch.Key)
 	klog.V(6).Infof("call function CleanUp: namespace=%s, zone=%s, fqdn=%s", ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
 	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	c.ibmCisAPI, err = c.cisClient(&cfg)
 	if err != nil {
 		return err
 	}
@@ -260,19 +293,6 @@ func (c *ibmcisDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 	log.Debug("Kubernetes client in place")
 
-	ibmSession, ibmErr := cissession.New()
-
-	if ibmErr != nil {
-		log.Fatalf("IBM Cloud session failed: %s", ibmErr)
-	}
-
-	ibmCisAPI, ibmErr := cis.New(ibmSession)
-	if ibmErr != nil {
-		log.Fatal(ibmErr)
-	}
-	log.Info("IBM Cloud Internet Services API instance connection in place")
-
-	c.ibmCisAPI = ibmCisAPI
 	c.client = cl
 	return nil
 }

@@ -92,3 +92,41 @@ subjects:
     name: {{ .Values.certManager.serviceAccountName }}
     namespace: {{ .Values.certManager.namespace }}
 #    namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:flowcontrol-solver
+  labels:
+    app: {{ include "cert-manager-webhook-ibmcis.name" . }}
+    chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - 'prioritylevelconfigurations'
+      - 'flowschemas'
+    verbs:
+      - 'list'
+      - 'watch'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:flowcontrol-solver
+  labels:
+    app: {{ include "cert-manager-webhook-ibmcis.name" . }}
+    chart: {{ include "cert-manager-webhook-ibmcis.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-ibmcis.fullname" . }}
+    namespace: {{ .Values.namespace }}

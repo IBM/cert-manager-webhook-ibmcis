@@ -17,7 +17,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: quay.io/borup.work/cert-manager-webhook-ibmcis
+  repository: quay.io/hzhihui/cert-manager-webhook-ibmcis
   tag: latest
   pullPolicy: IfNotPresent
 
