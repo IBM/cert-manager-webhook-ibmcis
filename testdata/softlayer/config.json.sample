@@ -1,0 +1,7 @@
+{
+    "apiKeySecretRef": {
+        "name": "softlayer-api-key",
+        "key": "key"
+    },
+    "username": "<SOFTLAYER USERNAME>"
+}
