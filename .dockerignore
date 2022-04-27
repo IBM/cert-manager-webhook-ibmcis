@@ -1,0 +1,7 @@
+.env
+.gitignore
+scripts/*
+_out/*
+__main__/*
+deploy/*
+testdata/*
