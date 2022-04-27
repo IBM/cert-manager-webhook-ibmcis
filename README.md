@@ -2,7 +2,9 @@
 
 This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/catalog/services/internet-services#about).
 
-[![Docker Repository on Quay](https://quay.io/repository/borup.work/cert-manager-webhook-ibmcis/status "Docker Repository on Quay")](https://quay.io/repository/borup.work/cert-manager-webhook-ibmcis)
+[The old repo](https://github.com/jb-dk/cert-manager-webhook-ibmcis) is out of support.  that's why we have the new repo.
+
+[![Docker Repository on Quay](https://quay.io/repository/hzhihui/cert-manager-webhook-ibmcis/status "Docker Repository on Quay")](https://quay.io/repository/hzhihui/cert-manager-webhook-ibmcis)
 
 ## Prerequisites
 
