@@ -1,3 +1,8 @@
+/* Copyright (C) 2022
+* Author: Jørgen Borup
+* Maintainer: hughhuangzh
+ */
+
 package main
 
 import (
