@@ -153,7 +153,7 @@ spec:
   type: ClusterIP
   ports:
     - port: 443
-      targetPort: https
+      targetPort: 6443
       protocol: TCP
       name: https
   selector:
@@ -191,6 +191,7 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            - --secure-port=6443
           env:
             - name: GROUP_NAME
               value: "acme.borup.work"
@@ -201,7 +202,7 @@ spec:
                   key: api-token
           ports:
             - name: https
-              containerPort: 443
+              containerPort: 6443
               protocol: TCP
           livenessProbe:
             httpGet:

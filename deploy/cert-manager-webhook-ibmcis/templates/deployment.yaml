@@ -28,6 +28,7 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            - --secure-port=6443
 {{- if .Values.logLevel }}
             - --v={{ .Values.logLevel }}
 {{- end }}
@@ -41,7 +42,7 @@ spec:
                   key: api-token
           ports:
             - name: https
-              containerPort: 443
+              containerPort: 6443
               protocol: TCP
           livenessProbe:
             httpGet:
