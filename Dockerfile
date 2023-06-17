@@ -1,4 +1,4 @@
-FROM golang:1.17.8-alpine AS build_deps
+FROM --platform=linux/amd64 golang:1.20.5-alpine AS build_deps
 
 RUN apk add --no-cache git
 RUN apk add --no-cache ca-certificates
@@ -9,7 +9,7 @@ ENV GO111MODULE=on
 COPY go.mod .
 COPY go.sum .
 
-RUN go mod download \
+RUN go mod tidy \
  && go version
 
 FROM build_deps AS build
