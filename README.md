@@ -8,12 +8,12 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.7.1* *Kubernetes api 1.22*
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.11.0* *Kubernetes api 1.25*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ```bash
 #kubectl create namespace cert-manager
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.1/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
  # kubectl get pods -n cert-manager
 
 ```
@@ -61,6 +61,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: letsencrypt-staging
+  namespace: cert-manager-webhook-ibmcis
 spec:
   acme:
     # The ACME server URL
@@ -79,11 +80,14 @@ spec:
           groupName: acme.borup.work
           solverName: ibmcis
           config:
+            apiKeySecretRef:
+              name: ibmcis-credentials
+              key: api-token
             cisCRN:
               - "crn:v1:bluemix:public:internet-svcs:global:***::"
       selector:
         dnsZones:
-        - 'borup.work'
+        - 'example.com'
 
 ```
 
@@ -91,6 +95,40 @@ spec:
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: Issuer
+metadata:
+  name: letsencrypt-prod
+  namespace: cert-manager-webhook-ibmcis
+spec:
+  acme:
+    # The ACME server URL
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email address used for ACME registration
+    email: user@example.com # REPLACE THIS WITH YOUR EMAIL!!!
+
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod
+
+    solvers:
+    - dns01:
+        webhook:
+          groupName: acme.borup.work
+          solverName: ibmcis
+          config:
+            apiKeySecretRef:
+              name: ibmcis-credentials
+              key: api-token
+            cisCRN:
+              - "crn:v1:bluemix:public:internet-svcs:global:***::"
+      selector:
+        dnsZones:
+        - 'example.com'
+```
+Or you can create an ClusterIssuer as below :
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
 spec:
@@ -111,27 +149,51 @@ spec:
           groupName: acme.borup.work
           solverName: ibmcis
           config:
+            apiKeySecretRef:
+              name: ibmcis-credentials
+              key: api-token
             cisCRN:
               - "crn:v1:bluemix:public:internet-svcs:global:***::"
       selector:
         dnsZones:
-        - 'borup.work'
+        - 'example.com'
 ```
 
 ## Certificate
 
-1. Issue a certificate
+Then create the certificate which will use this issuer : https://cert-manager.io/docs/usage/certificate/
+
+Create an certification using Issuer as below :
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-com
+  namespace: cert-manager-webhook-ibmcis
+spec:
+  commonName: example.com
+  dnsNames:
+  - example.com
+  - "*.example.com"
+  issuerRef:
+    name: letsencrypt-staging
+    kind: Issuer
+  secretName: example-com-tls
+```
+Or create an certification using ClusterIssuer as below :
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: example-com
 spec:
-  commonName: example-com
+  commonName: example.com
   dnsNames:
-  - example-com
+  - example.com
+  - "*.example.com"
   issuerRef:
     name: letsencrypt-staging
+    kind: ClusterIssuer
   secretName: example-com-tls
 ```
 
