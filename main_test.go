@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
-	"github.com/cert-manager/cert-manager/test/acme/dns"
+	dns "github.com/cert-manager/cert-manager/test/acme"
 )
 
 var (
@@ -18,8 +19,10 @@ func TestRunsSuite(t *testing.T) {
 
 	solver := &ibmcisDNSProviderSolver{}
 	fixture := dns.NewFixture(solver,
-		dns.SetBinariesPath("__main__/hack/bin"),
 		dns.SetResolvedZone(zone),
+		dns.SetStrict(true),
+		dns.SetPropagationLimit(time.Minute*10),
+		dns.SetPollInterval(time.Second*15),
 		dns.SetManifestPath("testdata/ibmcis"),
 	)
 

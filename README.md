@@ -8,12 +8,11 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.11.0* *Kubernetes api 1.25*
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.32.2* *Kubernetes api 1.28.2*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ```bash
-#kubectl create namespace cert-manager
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.32.2/cert-manager.yaml
  # kubectl get pods -n cert-manager
 
 ```
@@ -196,10 +195,19 @@ spec:
     kind: ClusterIssuer
   secretName: example-com-tls
 ```
+6. Get certificate
 
+Namespace Issuer
+```bash
+kubectl get secret example-com-tls -n cert-manager-webhook-ibmcis
+```
+Cluster Issuer
+```bash
+kubectl get secret example-com-tls
+```
 ### Automatically creating Certificates for Ingress resources
 
-See [this](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html).
+See [this](https://cert-manager.io/docs/usage/ingress/).
 
 ## Development
 
