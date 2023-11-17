@@ -1,5 +1,6 @@
-FROM --platform=linux/amd64 golang:1.20.5-alpine AS build_deps
+FROM --platform=$BUILDPLATFORM golang:1.20.5-alpine AS build_deps
 
+ARG TARGETOS TARGETARCH
 RUN apk add --no-cache git
 RUN apk add --no-cache ca-certificates
 
@@ -16,7 +17,7 @@ FROM build_deps AS build
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o webhook -ldflags '-w -extldflags "-static"' .
 
 FROM scratch
 

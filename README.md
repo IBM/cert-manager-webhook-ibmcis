@@ -8,11 +8,11 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.32.2* *Kubernetes api 1.28.2*
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.13.2* *Kubernetes api 1.28.2*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.32.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
  # kubectl get pods -n cert-manager
 
 ```
@@ -23,7 +23,9 @@ _Notice: The pod will not startup until the steps under [configuration](#Issuer)
 Assuming your installation has 1. cert-manager running in name-space `cert-manager` and 2. accept this webhook will be installed into namespace `cert-manager-webhook-ibmcis`, 3. the API groups `acme.borup.work` will be used, then it is recommended to install via this pre-defined file .
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/IBM/cert-manager-webhook-ibmcis/master/cert-manager-webhook-ibmcis.yaml
+git clone https://github.com/IBM/cert-manager-webhook-ibmcis.git
+cd cert-manager-webhook-ibmcis
+kubectl apply -f cert-manager-webhook-ibmcis.yaml
 ```
 
 ### How cert-manager-webhook-ibmcis.yaml is created (information)
