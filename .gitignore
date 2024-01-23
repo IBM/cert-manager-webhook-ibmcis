@@ -20,3 +20,4 @@ __main__
 .env
 config.json
 webhook
+vendor
