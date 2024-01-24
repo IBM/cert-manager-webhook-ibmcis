@@ -8,11 +8,11 @@ This is a webhook solver for [IBM Cloud Internet Service](https://cloud.ibm.com/
 
 ## Prerequisites
 
-* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.13.2* *Kubernetes api 1.28.2*
+* [cert-manager](https://github.com/jetstack/cert-manager): *tested with 1.13.3* *Kubernetes api 1.28.4*
     - [Installing on Kubernetes](https://cert-manager.io/next-docs/installation/kubernetes/)
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
  # kubectl get pods -n cert-manager
 
 ```
