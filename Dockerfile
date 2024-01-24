@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.20.5-alpine AS build_deps
+FROM --platform=$BUILDPLATFORM golang:1.21.6-alpine AS build_deps
 
 ARG TARGETOS TARGETARCH
 RUN apk add --no-cache git

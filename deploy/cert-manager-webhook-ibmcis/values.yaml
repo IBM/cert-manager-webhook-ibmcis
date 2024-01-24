@@ -18,7 +18,7 @@ certManager:
 
 image:
   repository: quay.io/hzhihui/cert-manager-webhook-ibmcis
-  tag: 0.2.2
+  tag: 0.2.3
   pullPolicy: IfNotPresent
 
 nameOverride: ""
