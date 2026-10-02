@@ -14,6 +14,7 @@ build:
 	podman build --platform $(PLATFORM) -t "$(IMAGE_NAME):$(IMAGE_TAG)_$(subst linux/,,$(PLATFORM))" .
 
 build-multi:
+	podman manifest rm "$(IMAGE_NAME):$(IMAGE_TAG)" || true
 	podman build --platform $(MULTIARCH)  --manifest "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
 .PHONY: rendered-manifest.yaml
