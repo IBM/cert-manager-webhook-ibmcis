@@ -1,7 +1,6 @@
 IMAGE_NAME := "quay.io/ibm/cert-manager-webhook-ibmcis"
 IMAGE_TAG := "latest"
 PLATFORM := "linux/amd64"
-MULTIARCH := "linux/amd64,linux/ppc64le,linux/s390x"
 
 OUT := $(shell pwd)/_out
 
@@ -15,7 +14,14 @@ build:
 
 build-multi:
 	podman manifest rm "$(IMAGE_NAME):$(IMAGE_TAG)" || true
-	podman build --platform $(MULTIARCH)  --manifest "$(IMAGE_NAME):$(IMAGE_TAG)" .
+	podman build --platform linux/amd64  -t "$(IMAGE_NAME):$(IMAGE_TAG)_amd64" .
+	podman build --platform linux/ppc64le  -t "$(IMAGE_NAME):$(IMAGE_TAG)_ppc64le" .
+	podman build --platform linux/s390x  -t "$(IMAGE_NAME):$(IMAGE_TAG)_s390x" .
+	podman manifest create "$(IMAGE_NAME):$(IMAGE_TAG)"
+	podman manifest add "$(IMAGE_NAME):$(IMAGE_TAG)" "$(IMAGE_NAME):$(IMAGE_TAG)_amd64"
+	podman manifest add "$(IMAGE_NAME):$(IMAGE_TAG)" "$(IMAGE_NAME):$(IMAGE_TAG)_ppc64le"
+	podman manifest add "$(IMAGE_NAME):$(IMAGE_TAG)" "$(IMAGE_NAME):$(IMAGE_TAG)_s390x"
+
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
